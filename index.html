@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review Sentiment Analysis</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    .highlight-positive {
+      background-color: #D9F2DD;
+    }
+
+    .highlight-negative {
+      background-color: #F2DBD9;
+    }
+
+    .highlight-mixed {
+      background-color: #e8bd6d3d;
+    }
+
+    .highlight-neutral {
+      background-color: #eaf09b6b;
+    }
+
+    .tooltip-inner {
+      max-width: none;
+    }
+  </style>
+</head>
+
+
+<body>
+  <div id="root"></div>
+
+  <!-- React library -->
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+  <!-- ReactDOM library -->
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+
+  <script>
+    // Your React code goes here
+    const reviewsData = [{
+      "reviewer_name": "Barbara",
+      "content": "We had a relaxing time ❤. [Positive]: The spa was excellent. We had a wonderful relaxing time! [Negative]: The food choices at the Rowe restaurant. Parking should be included in your stay because you pay a lot to stay here already.",
+      "date": "05 Dec 2023",
+      "rating_review_score": 10.0,
+      "out_of": 10.0,
+      "source_language": "en",
+      "source": {
+        "name": "booking.com",
+        "icon": "https://reviewmagic.innspire.com:8001/media/sources/booking3.png"
+      },
+      "analytics": [{
+          "category": "spa",
+          "topic": "spa",
+          "phrases": ["spa", "spa"],
+          "sentences": ["The spa was excellent"],
+          "sentiment": "Positive",
+          "highlight_indices": [
+            [38, 59, "Positive"]
+          ]
+        },
+        {
+          "category": "facilities",
+          "topic": "facilities",
+          "phrases": ["parking", "parking"],
+          "sentences": ["Parking should be included in your stay because you pay a lot to stay here already"],
+          "sentiment": "Negative",
+          "highlight_indices": [
+            [148, 230, "Negative"]
+          ]
+        }
+      ]
+    }];
+    const ReviewList = ({
+      reviews
+    }) => {
+      return (
+        React.createElement("div", {
+            className: "container mt-4"
+          },
+          reviews.map((review, index) =>
+            React.createElement(ReviewHighlighter, {
+              key: index,
+              review: review
+            })
+          )
+        )
+      );
+    };
+    const ReviewHighlighter = ({
+      review
+    }) => {
+      const highlightClass = (sentiment) => {
+        switch (sentiment) {
+          case 'Positive':
+            return 'highlight-positive';
+          case 'Negative':
+            return 'highlight-negative';
+          case 'Mixed':
+            return 'highlight-mixed';
+          case 'Neutral':
+            return 'highlight-neutral';
+          default:
+            return '';
+        }
+      };
+      const renderHighlightedText = (content, analytics) => {
+        let highlightedText = [];
+        let lastIndex = 0;
+        analytics.forEach((analysis, index) => {
+          analysis.highlight_indices.forEach(([start, end, sentiment]) => {
+            if (start > lastIndex) {
+              highlightedText.push(content.slice(lastIndex, start));
+            }
+            highlightedText.push(
+              React.createElement("span", {
+                  key: `${index}-${start}`,
+                  className: highlightClass(sentiment),
+                  title: analysis.topic,
+                  "data-toggle": "tooltip",
+                  "data-placement": "bottom",
+                  "data-html": "true",
+                  "data-trigger": "hover",
+                  "data-delay": '{"show": 100, "hide": 0}',
+                  "data-html": "true",
+                  "data-template": "<div class='tooltip' role='tooltip'><div class='arrow'></div><div class='tooltip-inner'></div></div>",
+                  "data-title": analysis.topic
+                },
+                content.slice(start, end)
+              )
+            );
+            lastIndex = end;
+          });
+        });
+        if (lastIndex < content.length) {
+          highlightedText.push(content.slice(lastIndex));
+        }
+        return highlightedText;
+      };
+      const renderStars = (rating, outOf) => {
+  const stars = [];
+  const fullStars = Math.floor(rating);
+  const halfStar = rating % 1 !== 0;
+  const emptyStars = Math.floor(outOf - rating);
+
+  for (let i = 0; i < fullStars; i++) {
+    stars.push('★');
+  }
+
+  if (halfStar) {
+    stars.push('½');
+  }
+
+  for (let i = 0; i < emptyStars; i++) {
+    stars.push('★');
+  }
+
+  return stars.join('');
+};
+
+      return (
+        React.createElement("div", {
+            className: "card mb-4"
+          },
+          React.createElement("div", {
+              className: "card-body"
+            },
+            React.createElement("h5", {
+              className: "card-title"
+            }, review.reviewer_name),
+            React.createElement("h6", {
+              className: "card-subtitle mb-2 text-muted "
+            },renderStars(review.rating_review_score, review.out_of),review.date),
+            React.createElement("p", {
+              className: "card-text"
+            }, renderHighlightedText(review.content, review.analytics) )
+          )
+        )
+      );
+    };
+    
+    const App = () => {
+      const [reviews, setReviews] = React.useState([]);
+      React.useEffect(() => {
+        // Simulating fetching data from JSON file
+        setReviews(reviewsData);
+      }, []);
+      React.useEffect(() => {
+        // Initialize Bootstrap tooltips
+        const tooltips = document.querySelectorAll('[data-toggle="tooltip"]');
+        tooltips.forEach(tooltip => {
+          tooltip.addEventListener('mouseenter', function() {
+            $(this).tooltip('show');
+          });
+          tooltip.addEventListener('mouseleave', function() {
+            $(this).tooltip('hide');
+          });
+        });
+      }, []);
+      return (
+        React.createElement(ReviewList, {
+          reviews: reviews
+        })
+      );
+    };
+    ReactDOM.render(React.createElement(App), document.getElementById('root'));
+  </script>
+</body>
+
+</html>
